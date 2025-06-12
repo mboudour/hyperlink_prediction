@@ -16,3 +16,4 @@
 9. [HyperGNN_prediction.ipynb](HyperGNN_prediction.ipynb)
 10. [HyperGNN_temporal_prediction.ipynb](HyperGNN_temporal_prediction.ipynb)
 11. [CHESHIRE_reconstruction.ipynb](CHESHIRE_reconstruction.ipynb)
+12. [Tables_Aggregation_Methods_Examples_Comparison](Tables_Aggregation_Methods_Examples_Comparison.ipynb)
