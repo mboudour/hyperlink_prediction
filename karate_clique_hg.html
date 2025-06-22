@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 800px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "rgba(65, 105, 225, 0.5)", "font": {"color": "black"}, "id": "clique_0", "label": "clique_0", "shape": "dot", "size": 5, "title": "Node: clique_0\nNeighbors:\n0\n1\n2\n3\n13"}, {"color": "yellow", "font": {"color": "black"}, "id": "0", "label": "0", "shape": "dot", "size": 15, "title": "Node: 0\nNeighbors:\nclique_0\nclique_1\nclique_4\nclique_5\nclique_6\nclique_7\nclique_8\nclique_9\nclique_10\nclique_11\nclique_12\nclique_25\nclique_26"}, {"color": "yellow", "font": {"color": "black"}, "id": "1", "label": "1", "shape": "dot", "size": 15, "title": "Node: 1\nNeighbors:\nclique_0\nclique_1\nclique_4\nclique_5\nclique_6\nclique_27"}, {"color": "yellow", "font": {"color": "black"}, "id": "2", "label": "2", "shape": "dot", "size": 15, "title": "Node: 2\nNeighbors:\nclique_0\nclique_1\nclique_11\nclique_13\nclique_28\nclique_29\nclique_30"}, {"color": "yellow", "font": {"color": "black"}, "id": "3", "label": "3", "shape": "dot", "size": 15, "title": "Node: 3\nNeighbors:\nclique_0\nclique_1\nclique_12"}, {"color": "yellow", "font": {"color": "black"}, "id": "13", "label": "13", "shape": "dot", "size": 15, "title": "Node: 13\nNeighbors:\nclique_0\nclique_32"}, {"color": "rgba(0, 128, 0, 0.5)", "font": {"color": "black"}, "id": "clique_1", "label": "clique_1", "shape": "dot", "size": 5, "title": "Node: clique_1\nNeighbors:\n0\n1\n2\n3\n7"}, {"color": "yellow", "font": {"color": "black"}, "id": "7", "label": "7", "shape": "dot", "size": 15, "title": "Node: 7\nNeighbors:\nclique_1"}, {"color": "rgba(154, 205, 50, 0.5)", "font": {"color": "black"}, "id": "clique_2", "label": "clique_2", "shape": "dot", "size": 5, "title": "Node: clique_2\nNeighbors:\n8\n33\n32\n30"}, {"color": "yellow", "font": {"color": "black"}, "id": "8", "label": "8", "shape": "dot", "size": 15, "title": "Node: 8\nNeighbors:\nclique_2\nclique_11\nclique_13"}, {"color": "yellow", "font": {"color": "black"}, "id": "33", "label": "33", "shape": "dot", "size": 15, "title": "Node: 33\nNeighbors:\nclique_2\nclique_3\nclique_15\nclique_16\nclique_17\nclique_18\nclique_19\nclique_20\nclique_21\nclique_22\nclique_23\nclique_31\nclique_32\nclique_33"}, {"color": "yellow", "font": {"color": "black"}, "id": "32", "label": "32", "shape": "dot", "size": 15, "title": "Node: 32\nNeighbors:\nclique_2\nclique_3\nclique_13\nclique_15\nclique_16\nclique_17\nclique_18\nclique_19\nclique_20"}, {"color": "yellow", "font": {"color": "black"}, "id": "30", "label": "30", "shape": "dot", "size": 15, "title": "Node: 30\nNeighbors:\nclique_2\nclique_27"}, {"color": "rgba(152, 251, 152, 0.5)", "font": {"color": "black"}, "id": "clique_3", "label": "clique_3", "shape": "dot", "size": 5, "title": "Node: clique_3\nNeighbors:\n32\n33\n29\n23"}, {"color": "yellow", "font": {"color": "black"}, "id": "29", "label": "29", "shape": "dot", "size": 15, "title": "Node: 29\nNeighbors:\nclique_3\nclique_21"}, {"color": "yellow", "font": {"color": "black"}, "id": "23", "label": "23", "shape": "dot", "size": 15, "title": "Node: 23\nNeighbors:\nclique_3\nclique_22\nclique_35"}, {"color": "rgba(124, 252, 0, 0.5)", "font": {"color": "black"}, "id": "clique_4", "label": "clique_4", "shape": "dot", "size": 5, "title": "Node: clique_4\nNeighbors:\n0\n1\n17"}, {"color": "yellow", "font": {"color": "black"}, "id": "17", "label": "17", "shape": "dot", "size": 15, "title": "Node: 17\nNeighbors:\nclique_4"}, {"color": "rgba(216, 191, 216, 0.5)", "font": {"color": "black"}, "id": "clique_5", "label": "clique_5", "shape": "dot", "size": 5, "title": "Node: clique_5\nNeighbors:\n0\n1\n19"}, {"color": "yellow", "font": {"color": "black"}, "id": "19", "label": "19", "shape": "dot", "size": 15, "title": "Node: 19\nNeighbors:\nclique_5\nclique_33"}, {"color": "rgba(72, 61, 139, 0.5)", "font": {"color": "black"}, "id": "clique_6", "label": "clique_6", "shape": "dot", "size": 5, "title": "Node: clique_6\nNeighbors:\n0\n1\n21"}, {"color": "yellow", "font": {"color": "black"}, "id": "21", "label": "21", "shape": "dot", "size": 15, "title": "Node: 21\nNeighbors:\nclique_6"}, {"color": "rgba(85, 107, 47, 0.5)", "font": {"color": "black"}, "id": "clique_7", "label": "clique_7", "shape": "dot", "size": 5, "title": "Node: clique_7\nNeighbors:\n0\n10\n4"}, {"color": "yellow", "font": {"color": "black"}, "id": "10", "label": "10", "shape": "dot", "size": 15, "title": "Node: 10\nNeighbors:\nclique_7\nclique_9"}, {"color": "yellow", "font": {"color": "black"}, "id": "4", "label": "4", "shape": "dot", "size": 15, "title": "Node: 4\nNeighbors:\nclique_7\nclique_8"}, {"color": "rgba(255, 192, 203, 0.5)", "font": {"color": "black"}, "id": "clique_8", "label": "clique_8", "shape": "dot", "size": 5, "title": "Node: clique_8\nNeighbors:\n0\n4\n6"}, {"color": "yellow", "font": {"color": "black"}, "id": "6", "label": "6", "shape": "dot", "size": 15, "title": "Node: 6\nNeighbors:\nclique_8\nclique_10\nclique_14"}, {"color": "rgba(0, 0, 128, 0.5)", "font": {"color": "black"}, "id": "clique_9", "label": "clique_9", "shape": "dot", "size": 5, "title": "Node: clique_9\nNeighbors:\n0\n10\n5"}, {"color": "yellow", "font": {"color": "black"}, "id": "5", "label": "5", "shape": "dot", "size": 15, "title": "Node: 5\nNeighbors:\nclique_9\nclique_10\nclique_14"}, {"color": "rgba(106, 90, 205, 0.5)", "font": {"color": "black"}, "id": "clique_10", "label": "clique_10", "shape": "dot", "size": 5, "title": "Node: clique_10\nNeighbors:\n0\n5\n6"}, {"color": "rgba(50, 205, 50, 0.5)", "font": {"color": "black"}, "id": "clique_11", "label": "clique_11", "shape": "dot", "size": 5, "title": "Node: clique_11\nNeighbors:\n0\n8\n2"}, {"color": "rgba(128, 128, 128, 0.5)", "font": {"color": "black"}, "id": "clique_12", "label": "clique_12", "shape": "dot", "size": 5, "title": "Node: clique_12\nNeighbors:\n0\n3\n12"}, {"color": "yellow", "font": {"color": "black"}, "id": "12", "label": "12", "shape": "dot", "size": 15, "title": "Node: 12\nNeighbors:\nclique_12"}, {"color": "rgba(0, 255, 0, 0.5)", "font": {"color": "black"}, "id": "clique_13", "label": "clique_13", "shape": "dot", "size": 5, "title": "Node: clique_13\nNeighbors:\n8\n2\n32"}, {"color": "rgba(138, 43, 226, 0.5)", "font": {"color": "black"}, "id": "clique_14", "label": "clique_14", "shape": "dot", "size": 5, "title": "Node: clique_14\nNeighbors:\n16\n5\n6"}, {"color": "yellow", "font": {"color": "black"}, "id": "16", "label": "16", "shape": "dot", "size": 15, "title": "Node: 16\nNeighbors:\nclique_14"}, {"color": "rgba(60, 179, 113, 0.5)", "font": {"color": "black"}, "id": "clique_15", "label": "clique_15", "shape": "dot", "size": 5, "title": "Node: clique_15\nNeighbors:\n32\n33\n14"}, {"color": "yellow", "font": {"color": "black"}, "id": "14", "label": "14", "shape": "dot", "size": 15, "title": "Node: 14\nNeighbors:\nclique_15"}, {"color": "rgba(147, 112, 219, 0.5)", "font": {"color": "black"}, "id": "clique_16", "label": "clique_16", "shape": "dot", "size": 5, "title": "Node: clique_16\nNeighbors:\n32\n33\n15"}, {"color": "yellow", "font": {"color": "black"}, "id": "15", "label": "15", "shape": "dot", "size": 15, "title": "Node: 15\nNeighbors:\nclique_16"}, {"color": "rgba(210, 105, 30, 0.5)", "font": {"color": "black"}, "id": "clique_17", "label": "clique_17", "shape": "dot", "size": 5, "title": "Node: clique_17\nNeighbors:\n32\n33\n18"}, {"color": "yellow", "font": {"color": "black"}, "id": "18", "label": "18", "shape": "dot", "size": 15, "title": "Node: 18\nNeighbors:\nclique_17"}, {"color": "rgba(211, 211, 211, 0.5)", "font": {"color": "black"}, "id": "clique_18", "label": "clique_18", "shape": "dot", "size": 5, "title": "Node: clique_18\nNeighbors:\n32\n33\n20"}, {"color": "yellow", "font": {"color": "black"}, "id": "20", "label": "20", "shape": "dot", "size": 15, "title": "Node: 20\nNeighbors:\nclique_18"}, {"color": "rgba(250, 128, 114, 0.5)", "font": {"color": "black"}, "id": "clique_19", "label": "clique_19", "shape": "dot", "size": 5, "title": "Node: clique_19\nNeighbors:\n32\n33\n22"}, {"color": "yellow", "font": {"color": "black"}, "id": "22", "label": "22", "shape": "dot", "size": 15, "title": "Node: 22\nNeighbors:\nclique_19"}, {"color": "rgba(173, 255, 47, 0.5)", "font": {"color": "black"}, "id": "clique_20", "label": "clique_20", "shape": "dot", "size": 5, "title": "Node: clique_20\nNeighbors:\n32\n33\n31"}, {"color": "yellow", "font": {"color": "black"}, "id": "31", "label": "31", "shape": "dot", "size": 15, "title": "Node: 31\nNeighbors:\nclique_20\nclique_23\nclique_24\nclique_26"}, {"color": "rgba(255, 105, 180, 0.5)", "font": {"color": "black"}, "id": "clique_21", "label": "clique_21", "shape": "dot", "size": 5, "title": "Node: clique_21\nNeighbors:\n33\n26\n29"}, {"color": "yellow", "font": {"color": "black"}, "id": "26", "label": "26", "shape": "dot", "size": 15, "title": "Node: 26\nNeighbors:\nclique_21"}, {"color": "rgba(255, 140, 0, 0.5)", "font": {"color": "black"}, "id": "clique_22", "label": "clique_22", "shape": "dot", "size": 5, "title": "Node: clique_22\nNeighbors:\n33\n27\n23"}, {"color": "yellow", "font": {"color": "black"}, "id": "27", "label": "27", "shape": "dot", "size": 15, "title": "Node: 27\nNeighbors:\nclique_22\nclique_29\nclique_34"}, {"color": "rgba(0, 0, 139, 0.5)", "font": {"color": "black"}, "id": "clique_23", "label": "clique_23", "shape": "dot", "size": 5, "title": "Node: clique_23\nNeighbors:\n33\n28\n31"}, {"color": "yellow", "font": {"color": "black"}, "id": "28", "label": "28", "shape": "dot", "size": 15, "title": "Node: 28\nNeighbors:\nclique_23\nclique_30"}, {"color": "rgba(240, 128, 128, 0.5)", "font": {"color": "black"}, "id": "clique_24", "label": "clique_24", "shape": "dot", "size": 5, "title": "Node: clique_24\nNeighbors:\n24\n25\n31"}, {"color": "yellow", "font": {"color": "black"}, "id": "24", "label": "24", "shape": "dot", "size": 15, "title": "Node: 24\nNeighbors:\nclique_24\nclique_34"}, {"color": "yellow", "font": {"color": "black"}, "id": "25", "label": "25", "shape": "dot", "size": 15, "title": "Node: 25\nNeighbors:\nclique_24\nclique_35"}, {"color": "rgba(255, 0, 255, 0.5)", "font": {"color": "black"}, "id": "clique_25", "label": "clique_25", "shape": "dot", "size": 5, "title": "Node: clique_25\nNeighbors:\n0\n11"}, {"color": "yellow", "font": {"color": "black"}, "id": "11", "label": "11", "shape": "dot", "size": 15, "title": "Node: 11\nNeighbors:\nclique_25"}, {"color": "rgba(102, 51, 153, 0.5)", "font": {"color": "black"}, "id": "clique_26", "label": "clique_26", "shape": "dot", "size": 5, "title": "Node: clique_26\nNeighbors:\n0\n31"}, {"color": "rgba(160, 82, 45, 0.5)", "font": {"color": "black"}, "id": "clique_27", "label": "clique_27", "shape": "dot", "size": 5, "title": "Node: clique_27\nNeighbors:\n1\n30"}, {"color": "rgba(127, 255, 0, 0.5)", "font": {"color": "black"}, "id": "clique_28", "label": "clique_28", "shape": "dot", "size": 5, "title": "Node: clique_28\nNeighbors:\n9\n2"}, {"color": "yellow", "font": {"color": "black"}, "id": "9", "label": "9", "shape": "dot", "size": 15, "title": "Node: 9\nNeighbors:\nclique_28\nclique_31"}, {"color": "rgba(47, 79, 79, 0.5)", "font": {"color": "black"}, "id": "clique_29", "label": "clique_29", "shape": "dot", "size": 5, "title": "Node: clique_29\nNeighbors:\n2\n27"}, {"color": "rgba(105, 105, 105, 0.5)", "font": {"color": "black"}, "id": "clique_30", "label": "clique_30", "shape": "dot", "size": 5, "title": "Node: clique_30\nNeighbors:\n2\n28"}, {"color": "rgba(0, 139, 139, 0.5)", "font": {"color": "black"}, "id": "clique_31", "label": "clique_31", "shape": "dot", "size": 5, "title": "Node: clique_31\nNeighbors:\n9\n33"}, {"color": "rgba(255, 127, 80, 0.5)", "font": {"color": "black"}, "id": "clique_32", "label": "clique_32", "shape": "dot", "size": 5, "title": "Node: clique_32\nNeighbors:\n33\n13"}, {"color": "rgba(173, 216, 230, 0.5)", "font": {"color": "black"}, "id": "clique_33", "label": "clique_33", "shape": "dot", "size": 5, "title": "Node: clique_33\nNeighbors:\n33\n19"}, {"color": "rgba(127, 255, 212, 0.5)", "font": {"color": "black"}, "id": "clique_34", "label": "clique_34", "shape": "dot", "size": 5, "title": "Node: clique_34\nNeighbors:\n24\n27"}, {"color": "rgba(128, 128, 0, 0.5)", "font": {"color": "black"}, "id": "clique_35", "label": "clique_35", "shape": "dot", "size": 5, "title": "Node: clique_35\nNeighbors:\n25\n23"}]);
+                  edges = new vis.DataSet([{"color": "rgba(65, 105, 225, 0.5)", "from": "clique_0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "0", "width": 3}, {"color": "rgba(65, 105, 225, 0.5)", "from": "clique_0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "1", "width": 3}, {"color": "rgba(65, 105, 225, 0.5)", "from": "clique_0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "2", "width": 3}, {"color": "rgba(65, 105, 225, 0.5)", "from": "clique_0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "3", "width": 3}, {"color": "rgba(65, 105, 225, 0.5)", "from": "clique_0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "13", "width": 3}, {"color": "rgba(0, 128, 0, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_1", "width": 3}, {"color": "rgba(124, 252, 0, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_4", "width": 3}, {"color": "rgba(216, 191, 216, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_5", "width": 3}, {"color": "rgba(72, 61, 139, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_6", "width": 3}, {"color": "rgba(85, 107, 47, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_7", "width": 3}, {"color": "rgba(255, 192, 203, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_8", "width": 3}, {"color": "rgba(0, 0, 128, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_9", "width": 3}, {"color": "rgba(106, 90, 205, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_10", "width": 3}, {"color": "rgba(50, 205, 50, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_11", "width": 3}, {"color": "rgba(128, 128, 128, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_12", "width": 3}, {"color": "rgba(255, 0, 255, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_25", "width": 3}, {"color": "rgba(102, 51, 153, 0.5)", "from": "0", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_26", "width": 3}, {"color": "rgba(0, 128, 0, 0.5)", "from": "1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_1", "width": 3}, {"color": "rgba(124, 252, 0, 0.5)", "from": "1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_4", "width": 3}, {"color": "rgba(216, 191, 216, 0.5)", "from": "1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_5", "width": 3}, {"color": "rgba(72, 61, 139, 0.5)", "from": "1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_6", "width": 3}, {"color": "rgba(160, 82, 45, 0.5)", "from": "1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_27", "width": 3}, {"color": "rgba(0, 128, 0, 0.5)", "from": "2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_1", "width": 3}, {"color": "rgba(50, 205, 50, 0.5)", "from": "2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_11", "width": 3}, {"color": "rgba(0, 255, 0, 0.5)", "from": "2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_13", "width": 3}, {"color": "rgba(127, 255, 0, 0.5)", "from": "2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_28", "width": 3}, {"color": "rgba(47, 79, 79, 0.5)", "from": "2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_29", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_30", "width": 3}, {"color": "rgba(0, 128, 0, 0.5)", "from": "3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_1", "width": 3}, {"color": "rgba(128, 128, 128, 0.5)", "from": "3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_12", "width": 3}, {"color": "rgba(255, 127, 80, 0.5)", "from": "13", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_32", "width": 3}, {"color": "rgba(0, 128, 0, 0.5)", "from": "clique_1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "7", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "clique_2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "8", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "clique_2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "33", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "clique_2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "32", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "clique_2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "30", "width": 3}, {"color": "rgba(50, 205, 50, 0.5)", "from": "8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_11", "width": 3}, {"color": "rgba(0, 255, 0, 0.5)", "from": "8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_13", "width": 3}, {"color": "rgba(152, 251, 152, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_3", "width": 3}, {"color": "rgba(60, 179, 113, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_15", "width": 3}, {"color": "rgba(147, 112, 219, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_16", "width": 3}, {"color": "rgba(210, 105, 30, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_17", "width": 3}, {"color": "rgba(211, 211, 211, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_18", "width": 3}, {"color": "rgba(250, 128, 114, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_19", "width": 3}, {"color": "rgba(173, 255, 47, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_20", "width": 3}, {"color": "rgba(255, 105, 180, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_21", "width": 3}, {"color": "rgba(255, 140, 0, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_22", "width": 3}, {"color": "rgba(0, 0, 139, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_23", "width": 3}, {"color": "rgba(0, 139, 139, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_31", "width": 3}, {"color": "rgba(255, 127, 80, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_32", "width": 3}, {"color": "rgba(173, 216, 230, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_33", "width": 3}, {"color": "rgba(152, 251, 152, 0.5)", "from": "32", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_3", "width": 3}, {"color": "rgba(0, 255, 0, 0.5)", "from": "32", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_13", "width": 3}, {"color": "rgba(60, 179, 113, 0.5)", "from": "32", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_15", "width": 3}, {"color": "rgba(147, 112, 219, 0.5)", "from": "32", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_16", "width": 3}, {"color": "rgba(210, 105, 30, 0.5)", "from": "32", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_17", "width": 3}, {"color": "rgba(211, 211, 211, 0.5)", "from": "32", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_18", "width": 3}, {"color": "rgba(250, 128, 114, 0.5)", "from": "32", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_19", "width": 3}, {"color": "rgba(173, 255, 47, 0.5)", "from": "32", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_20", "width": 3}, {"color": "rgba(160, 82, 45, 0.5)", "from": "30", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_27", "width": 3}, {"color": "rgba(152, 251, 152, 0.5)", "from": "clique_3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "29", "width": 3}, {"color": "rgba(152, 251, 152, 0.5)", "from": "clique_3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "23", "width": 3}, {"color": "rgba(255, 105, 180, 0.5)", "from": "29", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_21", "width": 3}, {"color": "rgba(255, 140, 0, 0.5)", "from": "23", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_22", "width": 3}, {"color": "rgba(128, 128, 0, 0.5)", "from": "23", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_35", "width": 3}, {"color": "rgba(124, 252, 0, 0.5)", "from": "clique_4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "17", "width": 3}, {"color": "rgba(216, 191, 216, 0.5)", "from": "clique_5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "19", "width": 3}, {"color": "rgba(173, 216, 230, 0.5)", "from": "19", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_33", "width": 3}, {"color": "rgba(72, 61, 139, 0.5)", "from": "clique_6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "21", "width": 3}, {"color": "rgba(85, 107, 47, 0.5)", "from": "clique_7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "10", "width": 3}, {"color": "rgba(85, 107, 47, 0.5)", "from": "clique_7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "4", "width": 3}, {"color": "rgba(0, 0, 128, 0.5)", "from": "10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_9", "width": 3}, {"color": "rgba(255, 192, 203, 0.5)", "from": "4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_8", "width": 3}, {"color": "rgba(255, 192, 203, 0.5)", "from": "clique_8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "6", "width": 3}, {"color": "rgba(106, 90, 205, 0.5)", "from": "6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_10", "width": 3}, {"color": "rgba(138, 43, 226, 0.5)", "from": "6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_14", "width": 3}, {"color": "rgba(0, 0, 128, 0.5)", "from": "clique_9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "5", "width": 3}, {"color": "rgba(106, 90, 205, 0.5)", "from": "5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_10", "width": 3}, {"color": "rgba(138, 43, 226, 0.5)", "from": "5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_14", "width": 3}, {"color": "rgba(128, 128, 128, 0.5)", "from": "clique_12", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "12", "width": 3}, {"color": "rgba(138, 43, 226, 0.5)", "from": "clique_14", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "16", "width": 3}, {"color": "rgba(60, 179, 113, 0.5)", "from": "clique_15", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "14", "width": 3}, {"color": "rgba(147, 112, 219, 0.5)", "from": "clique_16", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "15", "width": 3}, {"color": "rgba(210, 105, 30, 0.5)", "from": "clique_17", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "18", "width": 3}, {"color": "rgba(211, 211, 211, 0.5)", "from": "clique_18", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "20", "width": 3}, {"color": "rgba(250, 128, 114, 0.5)", "from": "clique_19", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "22", "width": 3}, {"color": "rgba(173, 255, 47, 0.5)", "from": "clique_20", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "31", "width": 3}, {"color": "rgba(0, 0, 139, 0.5)", "from": "31", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_23", "width": 3}, {"color": "rgba(240, 128, 128, 0.5)", "from": "31", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_24", "width": 3}, {"color": "rgba(102, 51, 153, 0.5)", "from": "31", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_26", "width": 3}, {"color": "rgba(255, 105, 180, 0.5)", "from": "clique_21", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "26", "width": 3}, {"color": "rgba(255, 140, 0, 0.5)", "from": "clique_22", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "27", "width": 3}, {"color": "rgba(47, 79, 79, 0.5)", "from": "27", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_29", "width": 3}, {"color": "rgba(127, 255, 212, 0.5)", "from": "27", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_34", "width": 3}, {"color": "rgba(0, 0, 139, 0.5)", "from": "clique_23", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "28", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "28", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_30", "width": 3}, {"color": "rgba(240, 128, 128, 0.5)", "from": "clique_24", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "24", "width": 3}, {"color": "rgba(240, 128, 128, 0.5)", "from": "clique_24", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "25", "width": 3}, {"color": "rgba(127, 255, 212, 0.5)", "from": "24", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_34", "width": 3}, {"color": "rgba(128, 128, 0, 0.5)", "from": "25", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_35", "width": 3}, {"color": "rgba(255, 0, 255, 0.5)", "from": "clique_25", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "11", "width": 3}, {"color": "rgba(127, 255, 0, 0.5)", "from": "clique_28", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "9", "width": 3}, {"color": "rgba(0, 139, 139, 0.5)", "from": "9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "clique_31", "width": 3}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"interaction": {"hover": true, "tooltipDelay": 100, "hideEdgesOnDrag": true, "hoverConnectedEdges": true}, "physics": {"enabled": true}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

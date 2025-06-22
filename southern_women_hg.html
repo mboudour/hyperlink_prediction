@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 800px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "rgba(124, 252, 0, 0.3)", "font": {"color": "black"}, "id": "E1", "label": "E1", "shape": "dot", "size": 5, "title": "Node: E1\nNeighbors:\nW3\nW7\nW5\nW1\nW2\nW6\nW4\nW8"}, {"color": "yellow", "font": {"color": "black"}, "id": "W3", "label": "W3", "shape": "dot", "size": 15, "title": "Node: W3\nNeighbors:\nE1\nE2\nE3\nE4\nE5\nE6\nE7\nE8\nE9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W7", "label": "W7", "shape": "dot", "size": 15, "title": "Node: W7\nNeighbors:\nE1\nE2\nE3\nE4\nE5\nE6\nE7\nE8\nE9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W5", "label": "W5", "shape": "dot", "size": 15, "title": "Node: W5\nNeighbors:\nE1\nE2\nE3\nE4\nE5\nE6\nE7\nE8\nE9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W1", "label": "W1", "shape": "dot", "size": 15, "title": "Node: W1\nNeighbors:\nE1\nE2\nE3\nE4\nE5\nE6\nE7\nE8\nE9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W2", "label": "W2", "shape": "dot", "size": 15, "title": "Node: W2\nNeighbors:\nE1\nE2\nE3\nE4\nE5\nE6\nE7\nE8\nE9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W6", "label": "W6", "shape": "dot", "size": 15, "title": "Node: W6\nNeighbors:\nE1\nE2\nE3\nE5\nE6\nE7\nE8\nE9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W4", "label": "W4", "shape": "dot", "size": 15, "title": "Node: W4\nNeighbors:\nE1\nE2\nE3\nE4\nE5\nE6\nE7\nE8\nE9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W8", "label": "W8", "shape": "dot", "size": 15, "title": "Node: W8\nNeighbors:\nE1\nE3\nE4\nE5\nE6\nE7\nE8\nE9"}, {"color": "rgba(173, 255, 47, 0.3)", "font": {"color": "black"}, "id": "E2", "label": "E2", "shape": "dot", "size": 5, "title": "Node: E2\nNeighbors:\nW3\nW6\nW7\nW5\nW4\nW1\nW2"}, {"color": "rgba(255, 165, 0, 0.3)", "font": {"color": "black"}, "id": "E3", "label": "E3", "shape": "dot", "size": 5, "title": "Node: E3\nNeighbors:\nW3\nW7\nW5\nW1\nW2\nW6\nW4\nW8\nW9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W9", "label": "W9", "shape": "dot", "size": 15, "title": "Node: W9\nNeighbors:\nE3\nE4\nE6\nE7\nE8\nE9\nE10\nE11\nE12"}, {"color": "rgba(25, 25, 112, 0.3)", "font": {"color": "black"}, "id": "E4", "label": "E4", "shape": "dot", "size": 5, "title": "Node: E4\nNeighbors:\nW3\nW7\nW5\nW1\nW2\nW4\nW8\nW9"}, {"color": "rgba(46, 139, 87, 0.3)", "font": {"color": "black"}, "id": "E5", "label": "E5", "shape": "dot", "size": 5, "title": "Node: E5\nNeighbors:\nW3\nW7\nW5\nW1\nW2\nW6\nW4\nW8"}, {"color": "rgba(0, 100, 0, 0.3)", "font": {"color": "black"}, "id": "E6", "label": "E6", "shape": "dot", "size": 5, "title": "Node: E6\nNeighbors:\nW3\nW7\nW10\nW5\nW1\nW2\nW6\nW4\nW8\nW9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W10", "label": "W10", "shape": "dot", "size": 15, "title": "Node: W10\nNeighbors:\nE6\nE7\nE8\nE9\nE10\nE11\nE12"}, {"color": "rgba(72, 209, 204, 0.3)", "font": {"color": "black"}, "id": "E7", "label": "E7", "shape": "dot", "size": 5, "title": "Node: E7\nNeighbors:\nW3\nW7\nW10\nW5\nW11\nW1\nW2\nW12\nW6\nW4\nW8\nW9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W11", "label": "W11", "shape": "dot", "size": 15, "title": "Node: W11\nNeighbors:\nE7\nE8\nE9\nE10\nE11\nE12"}, {"color": "yellow", "font": {"color": "black"}, "id": "W12", "label": "W12", "shape": "dot", "size": 15, "title": "Node: W12\nNeighbors:\nE7\nE8\nE9\nE10\nE11\nE12"}, {"color": "rgba(189, 183, 107, 0.3)", "font": {"color": "black"}, "id": "E8", "label": "E8", "shape": "dot", "size": 5, "title": "Node: E8\nNeighbors:\nW3\nW7\nW10\nW5\nW13\nW14\nW11\nW1\nW2\nW12\nW6\nW4\nW8\nW9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W13", "label": "W13", "shape": "dot", "size": 15, "title": "Node: W13\nNeighbors:\nE8\nE9\nE10\nE11\nE12\nE13\nE14"}, {"color": "yellow", "font": {"color": "black"}, "id": "W14", "label": "W14", "shape": "dot", "size": 15, "title": "Node: W14\nNeighbors:\nE8\nE9\nE10\nE11\nE12\nE13\nE14"}, {"color": "rgba(30, 144, 255, 0.3)", "font": {"color": "black"}, "id": "E9", "label": "E9", "shape": "dot", "size": 5, "title": "Node: E9\nNeighbors:\nW3\nW7\nW10\nW5\nW13\nW14\nW11\nW1\nW2\nW12\nW6\nW4\nW8\nW9"}, {"color": "rgba(219, 112, 147, 0.3)", "font": {"color": "black"}, "id": "E10", "label": "E10", "shape": "dot", "size": 5, "title": "Node: E10\nNeighbors:\nW10\nW13\nW15\nW14\nW11\nW12\nW16\nW17\nW9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W15", "label": "W15", "shape": "dot", "size": 15, "title": "Node: W15\nNeighbors:\nE10\nE11\nE12\nE13\nE14"}, {"color": "yellow", "font": {"color": "black"}, "id": "W16", "label": "W16", "shape": "dot", "size": 15, "title": "Node: W16\nNeighbors:\nE10\nE11\nE12\nE13\nE14"}, {"color": "yellow", "font": {"color": "black"}, "id": "W17", "label": "W17", "shape": "dot", "size": 15, "title": "Node: W17\nNeighbors:\nE10\nE11\nE12\nE13\nE14"}, {"color": "rgba(135, 206, 250, 0.3)", "font": {"color": "black"}, "id": "E11", "label": "E11", "shape": "dot", "size": 5, "title": "Node: E11\nNeighbors:\nW10\nW13\nW15\nW14\nW11\nW12\nW16\nW17\nW9"}, {"color": "rgba(218, 165, 32, 0.3)", "font": {"color": "black"}, "id": "E12", "label": "E12", "shape": "dot", "size": 5, "title": "Node: E12\nNeighbors:\nW10\nW13\nW15\nW14\nW11\nW18\nW12\nW16\nW17\nW9"}, {"color": "yellow", "font": {"color": "black"}, "id": "W18", "label": "W18", "shape": "dot", "size": 15, "title": "Node: W18\nNeighbors:\nE12\nE13\nE14"}, {"color": "rgba(0, 139, 139, 0.3)", "font": {"color": "black"}, "id": "E13", "label": "E13", "shape": "dot", "size": 5, "title": "Node: E13\nNeighbors:\nW17\nW16\nW13\nW15\nW14\nW18"}, {"color": "rgba(72, 61, 139, 0.3)", "font": {"color": "black"}, "id": "E14", "label": "E14", "shape": "dot", "size": 5, "title": "Node: E14\nNeighbors:\nW17\nW16\nW13\nW15\nW14\nW18"}]);
+                  edges = new vis.DataSet([{"color": "rgba(124, 252, 0, 0.3)", "from": "E1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W3", "width": 3}, {"color": "rgba(124, 252, 0, 0.3)", "from": "E1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W7", "width": 3}, {"color": "rgba(124, 252, 0, 0.3)", "from": "E1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W5", "width": 3}, {"color": "rgba(124, 252, 0, 0.3)", "from": "E1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W1", "width": 3}, {"color": "rgba(124, 252, 0, 0.3)", "from": "E1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W2", "width": 3}, {"color": "rgba(124, 252, 0, 0.3)", "from": "E1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W6", "width": 3}, {"color": "rgba(124, 252, 0, 0.3)", "from": "E1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W4", "width": 3}, {"color": "rgba(124, 252, 0, 0.3)", "from": "E1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W8", "width": 3}, {"color": "rgba(173, 255, 47, 0.3)", "from": "W3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E2", "width": 3}, {"color": "rgba(255, 165, 0, 0.3)", "from": "W3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E3", "width": 3}, {"color": "rgba(25, 25, 112, 0.3)", "from": "W3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E4", "width": 3}, {"color": "rgba(46, 139, 87, 0.3)", "from": "W3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E5", "width": 3}, {"color": "rgba(0, 100, 0, 0.3)", "from": "W3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E6", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "W3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E7", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(173, 255, 47, 0.3)", "from": "W7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E2", "width": 3}, {"color": "rgba(255, 165, 0, 0.3)", "from": "W7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E3", "width": 3}, {"color": "rgba(25, 25, 112, 0.3)", "from": "W7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E4", "width": 3}, {"color": "rgba(46, 139, 87, 0.3)", "from": "W7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E5", "width": 3}, {"color": "rgba(0, 100, 0, 0.3)", "from": "W7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E6", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "W7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E7", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(173, 255, 47, 0.3)", "from": "W5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E2", "width": 3}, {"color": "rgba(255, 165, 0, 0.3)", "from": "W5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E3", "width": 3}, {"color": "rgba(25, 25, 112, 0.3)", "from": "W5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E4", "width": 3}, {"color": "rgba(46, 139, 87, 0.3)", "from": "W5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E5", "width": 3}, {"color": "rgba(0, 100, 0, 0.3)", "from": "W5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E6", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "W5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E7", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(173, 255, 47, 0.3)", "from": "W1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E2", "width": 3}, {"color": "rgba(255, 165, 0, 0.3)", "from": "W1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E3", "width": 3}, {"color": "rgba(25, 25, 112, 0.3)", "from": "W1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E4", "width": 3}, {"color": "rgba(46, 139, 87, 0.3)", "from": "W1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E5", "width": 3}, {"color": "rgba(0, 100, 0, 0.3)", "from": "W1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E6", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "W1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E7", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(173, 255, 47, 0.3)", "from": "W2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E2", "width": 3}, {"color": "rgba(255, 165, 0, 0.3)", "from": "W2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E3", "width": 3}, {"color": "rgba(25, 25, 112, 0.3)", "from": "W2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E4", "width": 3}, {"color": "rgba(46, 139, 87, 0.3)", "from": "W2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E5", "width": 3}, {"color": "rgba(0, 100, 0, 0.3)", "from": "W2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E6", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "W2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E7", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(173, 255, 47, 0.3)", "from": "W6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E2", "width": 3}, {"color": "rgba(255, 165, 0, 0.3)", "from": "W6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E3", "width": 3}, {"color": "rgba(46, 139, 87, 0.3)", "from": "W6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E5", "width": 3}, {"color": "rgba(0, 100, 0, 0.3)", "from": "W6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E6", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "W6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E7", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(173, 255, 47, 0.3)", "from": "W4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E2", "width": 3}, {"color": "rgba(255, 165, 0, 0.3)", "from": "W4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E3", "width": 3}, {"color": "rgba(25, 25, 112, 0.3)", "from": "W4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E4", "width": 3}, {"color": "rgba(46, 139, 87, 0.3)", "from": "W4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E5", "width": 3}, {"color": "rgba(0, 100, 0, 0.3)", "from": "W4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E6", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "W4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E7", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(255, 165, 0, 0.3)", "from": "W8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E3", "width": 3}, {"color": "rgba(25, 25, 112, 0.3)", "from": "W8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E4", "width": 3}, {"color": "rgba(46, 139, 87, 0.3)", "from": "W8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E5", "width": 3}, {"color": "rgba(0, 100, 0, 0.3)", "from": "W8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E6", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "W8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E7", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(255, 165, 0, 0.3)", "from": "E3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W9", "width": 3}, {"color": "rgba(25, 25, 112, 0.3)", "from": "W9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E4", "width": 3}, {"color": "rgba(0, 100, 0, 0.3)", "from": "W9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E6", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "W9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E7", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(219, 112, 147, 0.3)", "from": "W9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E10", "width": 3}, {"color": "rgba(135, 206, 250, 0.3)", "from": "W9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E11", "width": 3}, {"color": "rgba(218, 165, 32, 0.3)", "from": "W9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E12", "width": 3}, {"color": "rgba(0, 100, 0, 0.3)", "from": "E6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W10", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "W10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E7", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(219, 112, 147, 0.3)", "from": "W10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E10", "width": 3}, {"color": "rgba(135, 206, 250, 0.3)", "from": "W10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E11", "width": 3}, {"color": "rgba(218, 165, 32, 0.3)", "from": "W10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E12", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "E7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W11", "width": 3}, {"color": "rgba(72, 209, 204, 0.3)", "from": "E7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W12", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(219, 112, 147, 0.3)", "from": "W11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E10", "width": 3}, {"color": "rgba(135, 206, 250, 0.3)", "from": "W11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E11", "width": 3}, {"color": "rgba(218, 165, 32, 0.3)", "from": "W11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E12", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "W12", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E8", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W12", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(219, 112, 147, 0.3)", "from": "W12", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E10", "width": 3}, {"color": "rgba(135, 206, 250, 0.3)", "from": "W12", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E11", "width": 3}, {"color": "rgba(218, 165, 32, 0.3)", "from": "W12", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E12", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "E8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W13", "width": 3}, {"color": "rgba(189, 183, 107, 0.3)", "from": "E8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W14", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W13", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(219, 112, 147, 0.3)", "from": "W13", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E10", "width": 3}, {"color": "rgba(135, 206, 250, 0.3)", "from": "W13", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E11", "width": 3}, {"color": "rgba(218, 165, 32, 0.3)", "from": "W13", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E12", "width": 3}, {"color": "rgba(0, 139, 139, 0.3)", "from": "W13", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E13", "width": 3}, {"color": "rgba(72, 61, 139, 0.3)", "from": "W13", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E14", "width": 3}, {"color": "rgba(30, 144, 255, 0.3)", "from": "W14", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E9", "width": 3}, {"color": "rgba(219, 112, 147, 0.3)", "from": "W14", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E10", "width": 3}, {"color": "rgba(135, 206, 250, 0.3)", "from": "W14", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E11", "width": 3}, {"color": "rgba(218, 165, 32, 0.3)", "from": "W14", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E12", "width": 3}, {"color": "rgba(0, 139, 139, 0.3)", "from": "W14", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E13", "width": 3}, {"color": "rgba(72, 61, 139, 0.3)", "from": "W14", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E14", "width": 3}, {"color": "rgba(219, 112, 147, 0.3)", "from": "E10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W15", "width": 3}, {"color": "rgba(219, 112, 147, 0.3)", "from": "E10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W16", "width": 3}, {"color": "rgba(219, 112, 147, 0.3)", "from": "E10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W17", "width": 3}, {"color": "rgba(135, 206, 250, 0.3)", "from": "W15", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E11", "width": 3}, {"color": "rgba(218, 165, 32, 0.3)", "from": "W15", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E12", "width": 3}, {"color": "rgba(0, 139, 139, 0.3)", "from": "W15", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E13", "width": 3}, {"color": "rgba(72, 61, 139, 0.3)", "from": "W15", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E14", "width": 3}, {"color": "rgba(135, 206, 250, 0.3)", "from": "W16", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E11", "width": 3}, {"color": "rgba(218, 165, 32, 0.3)", "from": "W16", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E12", "width": 3}, {"color": "rgba(0, 139, 139, 0.3)", "from": "W16", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E13", "width": 3}, {"color": "rgba(72, 61, 139, 0.3)", "from": "W16", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E14", "width": 3}, {"color": "rgba(135, 206, 250, 0.3)", "from": "W17", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E11", "width": 3}, {"color": "rgba(218, 165, 32, 0.3)", "from": "W17", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E12", "width": 3}, {"color": "rgba(0, 139, 139, 0.3)", "from": "W17", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E13", "width": 3}, {"color": "rgba(72, 61, 139, 0.3)", "from": "W17", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E14", "width": 3}, {"color": "rgba(218, 165, 32, 0.3)", "from": "E12", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "W18", "width": 3}, {"color": "rgba(0, 139, 139, 0.3)", "from": "W18", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E13", "width": 3}, {"color": "rgba(72, 61, 139, 0.3)", "from": "W18", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "E14", "width": 3}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"interaction": {"hover": true, "tooltipDelay": 100, "hideEdgesOnDrag": true, "hoverConnectedEdges": true}, "physics": {"enabled": true}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

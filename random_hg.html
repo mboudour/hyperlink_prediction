@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 800px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "rgba(250, 128, 114, 0.5)", "font": {"color": "black"}, "id": "rand_he_4", "label": "rand_he_4", "shape": "dot", "size": 5, "title": "Node: rand_he_4\nNeighbors:\n33\n4\n11\n44\n47\n49\n27\n28"}, {"color": "yellow", "font": {"color": "black"}, "id": "33", "label": "33", "shape": "dot", "size": 10, "title": "Node: 33\nNeighbors:\nrand_he_4\nrand_he_7\nrand_he_13"}, {"color": "yellow", "font": {"color": "black"}, "id": "4", "label": "4", "shape": "dot", "size": 10, "title": "Node: 4\nNeighbors:\nrand_he_4\nrand_he_3"}, {"color": "yellow", "font": {"color": "black"}, "id": "11", "label": "11", "shape": "dot", "size": 10, "title": "Node: 11\nNeighbors:\nrand_he_4\nrand_he_11\nrand_he_16\nrand_he_20\nrand_he_25"}, {"color": "yellow", "font": {"color": "black"}, "id": "44", "label": "44", "shape": "dot", "size": 10, "title": "Node: 44\nNeighbors:\nrand_he_4\nrand_he_18\nrand_he_2\nrand_he_21\nrand_he_17"}, {"color": "yellow", "font": {"color": "black"}, "id": "47", "label": "47", "shape": "dot", "size": 10, "title": "Node: 47\nNeighbors:\nrand_he_4\nrand_he_3\nrand_he_9"}, {"color": "yellow", "font": {"color": "black"}, "id": "49", "label": "49", "shape": "dot", "size": 10, "title": "Node: 49\nNeighbors:\nrand_he_4\nrand_he_11\nrand_he_23\nrand_he_22"}, {"color": "yellow", "font": {"color": "black"}, "id": "27", "label": "27", "shape": "dot", "size": 10, "title": "Node: 27\nNeighbors:\nrand_he_4\nrand_he_11\nrand_he_15\nrand_he_24\nrand_he_1\nrand_he_25"}, {"color": "yellow", "font": {"color": "black"}, "id": "28", "label": "28", "shape": "dot", "size": 10, "title": "Node: 28\nNeighbors:\nrand_he_4\nrand_he_23\nrand_he_15\nrand_he_14\nrand_he_3"}, {"color": "rgba(154, 205, 50, 0.5)", "font": {"color": "black"}, "id": "rand_he_5", "label": "rand_he_5", "shape": "dot", "size": 5, "title": "Node: rand_he_5\nNeighbors:\n2\n35\n5\n38\n9\n43\n23\n31"}, {"color": "yellow", "font": {"color": "black"}, "id": "2", "label": "2", "shape": "dot", "size": 10, "title": "Node: 2\nNeighbors:\nrand_he_5\nrand_he_7\nrand_he_23\nrand_he_16\nrand_he_6\nrand_he_17"}, {"color": "yellow", "font": {"color": "black"}, "id": "35", "label": "35", "shape": "dot", "size": 10, "title": "Node: 35\nNeighbors:\nrand_he_5\nrand_he_18\nrand_he_15"}, {"color": "yellow", "font": {"color": "black"}, "id": "5", "label": "5", "shape": "dot", "size": 10, "title": "Node: 5\nNeighbors:\nrand_he_5\nrand_he_11\nrand_he_18\nrand_he_19\nrand_he_22\nrand_he_21"}, {"color": "yellow", "font": {"color": "black"}, "id": "38", "label": "38", "shape": "dot", "size": 10, "title": "Node: 38\nNeighbors:\nrand_he_5\nrand_he_19"}, {"color": "yellow", "font": {"color": "black"}, "id": "9", "label": "9", "shape": "dot", "size": 10, "title": "Node: 9\nNeighbors:\nrand_he_5\nrand_he_11\nrand_he_19\nrand_he_23\nrand_he_15\nrand_he_24\nrand_he_8"}, {"color": "yellow", "font": {"color": "black"}, "id": "43", "label": "43", "shape": "dot", "size": 10, "title": "Node: 43\nNeighbors:\nrand_he_5\nrand_he_7"}, {"color": "yellow", "font": {"color": "black"}, "id": "23", "label": "23", "shape": "dot", "size": 10, "title": "Node: 23\nNeighbors:\nrand_he_5\nrand_he_15\nrand_he_20\nrand_he_24"}, {"color": "yellow", "font": {"color": "black"}, "id": "31", "label": "31", "shape": "dot", "size": 10, "title": "Node: 31\nNeighbors:\nrand_he_5\nrand_he_24"}, {"color": "rgba(0, 100, 0, 0.5)", "font": {"color": "black"}, "id": "rand_he_7", "label": "rand_he_7", "shape": "dot", "size": 5, "title": "Node: rand_he_7\nNeighbors:\n33\n2\n34\n43\n13\n48\n21\n29"}, {"color": "yellow", "font": {"color": "black"}, "id": "34", "label": "34", "shape": "dot", "size": 10, "title": "Node: 34\nNeighbors:\nrand_he_7\nrand_he_10\nrand_he_25"}, {"color": "yellow", "font": {"color": "black"}, "id": "13", "label": "13", "shape": "dot", "size": 10, "title": "Node: 13\nNeighbors:\nrand_he_7\nrand_he_14"}, {"color": "yellow", "font": {"color": "black"}, "id": "48", "label": "48", "shape": "dot", "size": 10, "title": "Node: 48\nNeighbors:\nrand_he_7\nrand_he_12\nrand_he_16"}, {"color": "yellow", "font": {"color": "black"}, "id": "21", "label": "21", "shape": "dot", "size": 10, "title": "Node: 21\nNeighbors:\nrand_he_7\nrand_he_10\nrand_he_23\nrand_he_13\nrand_he_21\nrand_he_6"}, {"color": "yellow", "font": {"color": "black"}, "id": "29", "label": "29", "shape": "dot", "size": 10, "title": "Node: 29\nNeighbors:\nrand_he_7\nrand_he_14"}, {"color": "rgba(178, 34, 34, 0.5)", "font": {"color": "black"}, "id": "rand_he_10", "label": "rand_he_10", "shape": "dot", "size": 5, "title": "Node: rand_he_10\nNeighbors:\n32\n34\n3\n14\n17\n19\n21\n26"}, {"color": "yellow", "font": {"color": "black"}, "id": "32", "label": "32", "shape": "dot", "size": 10, "title": "Node: 32\nNeighbors:\nrand_he_10\nrand_he_18\nrand_he_24"}, {"color": "yellow", "font": {"color": "black"}, "id": "3", "label": "3", "shape": "dot", "size": 10, "title": "Node: 3\nNeighbors:\nrand_he_10\nrand_he_12\nrand_he_20"}, {"color": "yellow", "font": {"color": "black"}, "id": "14", "label": "14", "shape": "dot", "size": 10, "title": "Node: 14\nNeighbors:\nrand_he_10\nrand_he_19\nrand_he_3"}, {"color": "yellow", "font": {"color": "black"}, "id": "17", "label": "17", "shape": "dot", "size": 10, "title": "Node: 17\nNeighbors:\nrand_he_10"}, {"color": "yellow", "font": {"color": "black"}, "id": "19", "label": "19", "shape": "dot", "size": 10, "title": "Node: 19\nNeighbors:\nrand_he_10\nrand_he_19"}, {"color": "yellow", "font": {"color": "black"}, "id": "26", "label": "26", "shape": "dot", "size": 10, "title": "Node: 26\nNeighbors:\nrand_he_10\nrand_he_18\nrand_he_19\nrand_he_17"}, {"color": "rgba(32, 178, 170, 0.5)", "font": {"color": "black"}, "id": "rand_he_11", "label": "rand_he_11", "shape": "dot", "size": 5, "title": "Node: rand_he_11\nNeighbors:\n5\n39\n9\n11\n46\n49\n27\n30"}, {"color": "yellow", "font": {"color": "black"}, "id": "39", "label": "39", "shape": "dot", "size": 10, "title": "Node: 39\nNeighbors:\nrand_he_11\nrand_he_24\nrand_he_8\nrand_he_6"}, {"color": "yellow", "font": {"color": "black"}, "id": "46", "label": "46", "shape": "dot", "size": 10, "title": "Node: 46\nNeighbors:\nrand_he_11\nrand_he_12\nrand_he_15"}, {"color": "yellow", "font": {"color": "black"}, "id": "30", "label": "30", "shape": "dot", "size": 10, "title": "Node: 30\nNeighbors:\nrand_he_11\nrand_he_23\nrand_he_16\nrand_he_20\nrand_he_2\nrand_he_6"}, {"color": "rgba(255, 69, 0, 0.5)", "font": {"color": "black"}, "id": "rand_he_18", "label": "rand_he_18", "shape": "dot", "size": 5, "title": "Node: rand_he_18\nNeighbors:\n32\n35\n5\n7\n40\n44\n16\n26"}, {"color": "yellow", "font": {"color": "black"}, "id": "7", "label": "7", "shape": "dot", "size": 10, "title": "Node: 7\nNeighbors:\nrand_he_18\nrand_he_12\nrand_he_2\nrand_he_13\nrand_he_21"}, {"color": "yellow", "font": {"color": "black"}, "id": "40", "label": "40", "shape": "dot", "size": 10, "title": "Node: 40\nNeighbors:\nrand_he_18\nrand_he_19\nrand_he_12\nrand_he_8"}, {"color": "yellow", "font": {"color": "black"}, "id": "16", "label": "16", "shape": "dot", "size": 10, "title": "Node: 16\nNeighbors:\nrand_he_18"}, {"color": "rgba(25, 25, 112, 0.5)", "font": {"color": "black"}, "id": "rand_he_19", "label": "rand_he_19", "shape": "dot", "size": 5, "title": "Node: rand_he_19\nNeighbors:\n5\n38\n40\n9\n14\n19\n24\n26"}, {"color": "yellow", "font": {"color": "black"}, "id": "24", "label": "24", "shape": "dot", "size": 10, "title": "Node: 24\nNeighbors:\nrand_he_19\nrand_he_20\nrand_he_14"}, {"color": "rgba(105, 105, 105, 0.5)", "font": {"color": "black"}, "id": "rand_he_23", "label": "rand_he_23", "shape": "dot", "size": 5, "title": "Node: rand_he_23\nNeighbors:\n2\n9\n10\n42\n49\n21\n28\n30"}, {"color": "yellow", "font": {"color": "black"}, "id": "10", "label": "10", "shape": "dot", "size": 10, "title": "Node: 10\nNeighbors:\nrand_he_23"}, {"color": "yellow", "font": {"color": "black"}, "id": "42", "label": "42", "shape": "dot", "size": 10, "title": "Node: 42\nNeighbors:\nrand_he_23\nrand_he_12"}, {"color": "rgba(0, 206, 209, 0.5)", "font": {"color": "black"}, "id": "rand_he_12", "label": "rand_he_12", "shape": "dot", "size": 5, "title": "Node: rand_he_12\nNeighbors:\n48\n3\n7\n40\n41\n42\n46"}, {"color": "yellow", "font": {"color": "black"}, "id": "41", "label": "41", "shape": "dot", "size": 10, "title": "Node: 41\nNeighbors:\nrand_he_12\nrand_he_22\nrand_he_1"}, {"color": "rgba(169, 169, 169, 0.5)", "font": {"color": "black"}, "id": "rand_he_15", "label": "rand_he_15", "shape": "dot", "size": 5, "title": "Node: rand_he_15\nNeighbors:\n35\n23\n9\n27\n28\n46\n15"}, {"color": "yellow", "font": {"color": "black"}, "id": "15", "label": "15", "shape": "dot", "size": 10, "title": "Node: 15\nNeighbors:\nrand_he_15\nrand_he_1\nrand_he_13\nrand_he_9"}, {"color": "rgba(105, 105, 105, 0.5)", "font": {"color": "black"}, "id": "rand_he_16", "label": "rand_he_16", "shape": "dot", "size": 5, "title": "Node: rand_he_16\nNeighbors:\n48\n1\n2\n36\n20\n11\n30"}, {"color": "yellow", "font": {"color": "black"}, "id": "1", "label": "1", "shape": "dot", "size": 10, "title": "Node: 1\nNeighbors:\nrand_he_16\nrand_he_1\nrand_he_2"}, {"color": "yellow", "font": {"color": "black"}, "id": "36", "label": "36", "shape": "dot", "size": 10, "title": "Node: 36\nNeighbors:\nrand_he_16\nrand_he_9"}, {"color": "yellow", "font": {"color": "black"}, "id": "20", "label": "20", "shape": "dot", "size": 10, "title": "Node: 20\nNeighbors:\nrand_he_16\nrand_he_22\nrand_he_21"}, {"color": "rgba(0, 0, 205, 0.5)", "font": {"color": "black"}, "id": "rand_he_22", "label": "rand_he_22", "shape": "dot", "size": 5, "title": "Node: rand_he_22\nNeighbors:\n49\n50\n20\n5\n6\n41\n12"}, {"color": "yellow", "font": {"color": "black"}, "id": "50", "label": "50", "shape": "dot", "size": 10, "title": "Node: 50\nNeighbors:\nrand_he_22"}, {"color": "yellow", "font": {"color": "black"}, "id": "6", "label": "6", "shape": "dot", "size": 10, "title": "Node: 6\nNeighbors:\nrand_he_22\nrand_he_8"}, {"color": "yellow", "font": {"color": "black"}, "id": "12", "label": "12", "shape": "dot", "size": 10, "title": "Node: 12\nNeighbors:\nrand_he_22\nrand_he_20\nrand_he_13"}, {"color": "rgba(0, 0, 139, 0.5)", "font": {"color": "black"}, "id": "rand_he_20", "label": "rand_he_20", "shape": "dot", "size": 5, "title": "Node: rand_he_20\nNeighbors:\n3\n23\n24\n11\n12\n30"}, {"color": "rgba(244, 164, 96, 0.5)", "font": {"color": "black"}, "id": "rand_he_24", "label": "rand_he_24", "shape": "dot", "size": 5, "title": "Node: rand_he_24\nNeighbors:\n32\n23\n39\n9\n27\n31"}, {"color": "rgba(0, 128, 128, 0.5)", "font": {"color": "black"}, "id": "rand_he_1", "label": "rand_he_1", "shape": "dot", "size": 5, "title": "Node: rand_he_1\nNeighbors:\n1\n18\n41\n27\n15"}, {"color": "yellow", "font": {"color": "black"}, "id": "18", "label": "18", "shape": "dot", "size": 10, "title": "Node: 18\nNeighbors:\nrand_he_1"}, {"color": "rgba(119, 136, 153, 0.5)", "font": {"color": "black"}, "id": "rand_he_2", "label": "rand_he_2", "shape": "dot", "size": 5, "title": "Node: rand_he_2\nNeighbors:\n1\n37\n7\n44\n30"}, {"color": "yellow", "font": {"color": "black"}, "id": "37", "label": "37", "shape": "dot", "size": 10, "title": "Node: 37\nNeighbors:\nrand_he_2"}, {"color": "rgba(128, 0, 128, 0.5)", "font": {"color": "black"}, "id": "rand_he_8", "label": "rand_he_8", "shape": "dot", "size": 5, "title": "Node: rand_he_8\nNeighbors:\n6\n39\n40\n9\n22"}, {"color": "yellow", "font": {"color": "black"}, "id": "22", "label": "22", "shape": "dot", "size": 10, "title": "Node: 22\nNeighbors:\nrand_he_8\nrand_he_14"}, {"color": "rgba(0, 255, 0, 0.5)", "font": {"color": "black"}, "id": "rand_he_13", "label": "rand_he_13", "shape": "dot", "size": 5, "title": "Node: rand_he_13\nNeighbors:\n33\n21\n7\n12\n15"}, {"color": "rgba(199, 21, 133, 0.5)", "font": {"color": "black"}, "id": "rand_he_14", "label": "rand_he_14", "shape": "dot", "size": 5, "title": "Node: rand_he_14\nNeighbors:\n29\n22\n24\n28\n13"}, {"color": "rgba(205, 133, 63, 0.5)", "font": {"color": "black"}, "id": "rand_he_21", "label": "rand_he_21", "shape": "dot", "size": 5, "title": "Node: rand_he_21\nNeighbors:\n20\n5\n21\n7\n44"}, {"color": "rgba(186, 85, 211, 0.5)", "font": {"color": "black"}, "id": "rand_he_3", "label": "rand_he_3", "shape": "dot", "size": 5, "title": "Node: rand_he_3\nNeighbors:\n4\n28\n14\n47"}, {"color": "rgba(255, 127, 80, 0.5)", "font": {"color": "black"}, "id": "rand_he_6", "label": "rand_he_6", "shape": "dot", "size": 5, "title": "Node: rand_he_6\nNeighbors:\n2\n21\n30\n39"}, {"color": "rgba(218, 165, 32, 0.5)", "font": {"color": "black"}, "id": "rand_he_9", "label": "rand_he_9", "shape": "dot", "size": 5, "title": "Node: rand_he_9\nNeighbors:\n36\n47\n15"}, {"color": "rgba(255, 160, 122, 0.5)", "font": {"color": "black"}, "id": "rand_he_17", "label": "rand_he_17", "shape": "dot", "size": 5, "title": "Node: rand_he_17\nNeighbors:\n2\n26\n44"}, {"color": "rgba(220, 20, 60, 0.5)", "font": {"color": "black"}, "id": "rand_he_25", "label": "rand_he_25", "shape": "dot", "size": 5, "title": "Node: rand_he_25\nNeighbors:\n27\n34\n11"}]);
+                  edges = new vis.DataSet([{"color": "rgba(250, 128, 114, 0.5)", "from": "rand_he_4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "33", "width": 3}, {"color": "rgba(250, 128, 114, 0.5)", "from": "rand_he_4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "4", "width": 3}, {"color": "rgba(250, 128, 114, 0.5)", "from": "rand_he_4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "11", "width": 3}, {"color": "rgba(250, 128, 114, 0.5)", "from": "rand_he_4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "44", "width": 3}, {"color": "rgba(250, 128, 114, 0.5)", "from": "rand_he_4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "47", "width": 3}, {"color": "rgba(250, 128, 114, 0.5)", "from": "rand_he_4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "49", "width": 3}, {"color": "rgba(250, 128, 114, 0.5)", "from": "rand_he_4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "27", "width": 3}, {"color": "rgba(250, 128, 114, 0.5)", "from": "rand_he_4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "28", "width": 3}, {"color": "rgba(0, 100, 0, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_7", "width": 3}, {"color": "rgba(0, 255, 0, 0.5)", "from": "33", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_13", "width": 3}, {"color": "rgba(186, 85, 211, 0.5)", "from": "4", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_3", "width": 3}, {"color": "rgba(32, 178, 170, 0.5)", "from": "11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_11", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_16", "width": 3}, {"color": "rgba(0, 0, 139, 0.5)", "from": "11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_20", "width": 3}, {"color": "rgba(220, 20, 60, 0.5)", "from": "11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_25", "width": 3}, {"color": "rgba(255, 69, 0, 0.5)", "from": "44", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_18", "width": 3}, {"color": "rgba(119, 136, 153, 0.5)", "from": "44", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_2", "width": 3}, {"color": "rgba(205, 133, 63, 0.5)", "from": "44", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_21", "width": 3}, {"color": "rgba(255, 160, 122, 0.5)", "from": "44", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_17", "width": 3}, {"color": "rgba(186, 85, 211, 0.5)", "from": "47", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_3", "width": 3}, {"color": "rgba(218, 165, 32, 0.5)", "from": "47", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_9", "width": 3}, {"color": "rgba(32, 178, 170, 0.5)", "from": "49", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_11", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "49", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_23", "width": 3}, {"color": "rgba(0, 0, 205, 0.5)", "from": "49", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_22", "width": 3}, {"color": "rgba(32, 178, 170, 0.5)", "from": "27", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_11", "width": 3}, {"color": "rgba(169, 169, 169, 0.5)", "from": "27", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_15", "width": 3}, {"color": "rgba(244, 164, 96, 0.5)", "from": "27", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_24", "width": 3}, {"color": "rgba(0, 128, 128, 0.5)", "from": "27", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_1", "width": 3}, {"color": "rgba(220, 20, 60, 0.5)", "from": "27", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_25", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "28", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_23", "width": 3}, {"color": "rgba(169, 169, 169, 0.5)", "from": "28", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_15", "width": 3}, {"color": "rgba(199, 21, 133, 0.5)", "from": "28", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_14", "width": 3}, {"color": "rgba(186, 85, 211, 0.5)", "from": "28", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_3", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "rand_he_5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "2", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "rand_he_5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "35", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "rand_he_5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "5", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "rand_he_5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "38", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "rand_he_5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "9", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "rand_he_5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "43", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "rand_he_5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "23", "width": 3}, {"color": "rgba(154, 205, 50, 0.5)", "from": "rand_he_5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "31", "width": 3}, {"color": "rgba(0, 100, 0, 0.5)", "from": "2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_7", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_23", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_16", "width": 3}, {"color": "rgba(255, 127, 80, 0.5)", "from": "2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_6", "width": 3}, {"color": "rgba(255, 160, 122, 0.5)", "from": "2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_17", "width": 3}, {"color": "rgba(255, 69, 0, 0.5)", "from": "35", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_18", "width": 3}, {"color": "rgba(169, 169, 169, 0.5)", "from": "35", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_15", "width": 3}, {"color": "rgba(32, 178, 170, 0.5)", "from": "5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_11", "width": 3}, {"color": "rgba(255, 69, 0, 0.5)", "from": "5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_18", "width": 3}, {"color": "rgba(25, 25, 112, 0.5)", "from": "5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_19", "width": 3}, {"color": "rgba(0, 0, 205, 0.5)", "from": "5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_22", "width": 3}, {"color": "rgba(205, 133, 63, 0.5)", "from": "5", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_21", "width": 3}, {"color": "rgba(25, 25, 112, 0.5)", "from": "38", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_19", "width": 3}, {"color": "rgba(32, 178, 170, 0.5)", "from": "9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_11", "width": 3}, {"color": "rgba(25, 25, 112, 0.5)", "from": "9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_19", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_23", "width": 3}, {"color": "rgba(169, 169, 169, 0.5)", "from": "9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_15", "width": 3}, {"color": "rgba(244, 164, 96, 0.5)", "from": "9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_24", "width": 3}, {"color": "rgba(128, 0, 128, 0.5)", "from": "9", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_8", "width": 3}, {"color": "rgba(0, 100, 0, 0.5)", "from": "43", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_7", "width": 3}, {"color": "rgba(169, 169, 169, 0.5)", "from": "23", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_15", "width": 3}, {"color": "rgba(0, 0, 139, 0.5)", "from": "23", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_20", "width": 3}, {"color": "rgba(244, 164, 96, 0.5)", "from": "23", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_24", "width": 3}, {"color": "rgba(244, 164, 96, 0.5)", "from": "31", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_24", "width": 3}, {"color": "rgba(0, 100, 0, 0.5)", "from": "rand_he_7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "34", "width": 3}, {"color": "rgba(0, 100, 0, 0.5)", "from": "rand_he_7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "13", "width": 3}, {"color": "rgba(0, 100, 0, 0.5)", "from": "rand_he_7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "48", "width": 3}, {"color": "rgba(0, 100, 0, 0.5)", "from": "rand_he_7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "21", "width": 3}, {"color": "rgba(0, 100, 0, 0.5)", "from": "rand_he_7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "29", "width": 3}, {"color": "rgba(178, 34, 34, 0.5)", "from": "34", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_10", "width": 3}, {"color": "rgba(220, 20, 60, 0.5)", "from": "34", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_25", "width": 3}, {"color": "rgba(199, 21, 133, 0.5)", "from": "13", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_14", "width": 3}, {"color": "rgba(0, 206, 209, 0.5)", "from": "48", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_12", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "48", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_16", "width": 3}, {"color": "rgba(178, 34, 34, 0.5)", "from": "21", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_10", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "21", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_23", "width": 3}, {"color": "rgba(0, 255, 0, 0.5)", "from": "21", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_13", "width": 3}, {"color": "rgba(205, 133, 63, 0.5)", "from": "21", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_21", "width": 3}, {"color": "rgba(255, 127, 80, 0.5)", "from": "21", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_6", "width": 3}, {"color": "rgba(199, 21, 133, 0.5)", "from": "29", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_14", "width": 3}, {"color": "rgba(178, 34, 34, 0.5)", "from": "rand_he_10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "32", "width": 3}, {"color": "rgba(178, 34, 34, 0.5)", "from": "rand_he_10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "3", "width": 3}, {"color": "rgba(178, 34, 34, 0.5)", "from": "rand_he_10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "14", "width": 3}, {"color": "rgba(178, 34, 34, 0.5)", "from": "rand_he_10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "17", "width": 3}, {"color": "rgba(178, 34, 34, 0.5)", "from": "rand_he_10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "19", "width": 3}, {"color": "rgba(178, 34, 34, 0.5)", "from": "rand_he_10", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "26", "width": 3}, {"color": "rgba(255, 69, 0, 0.5)", "from": "32", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_18", "width": 3}, {"color": "rgba(244, 164, 96, 0.5)", "from": "32", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_24", "width": 3}, {"color": "rgba(0, 206, 209, 0.5)", "from": "3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_12", "width": 3}, {"color": "rgba(0, 0, 139, 0.5)", "from": "3", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_20", "width": 3}, {"color": "rgba(25, 25, 112, 0.5)", "from": "14", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_19", "width": 3}, {"color": "rgba(186, 85, 211, 0.5)", "from": "14", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_3", "width": 3}, {"color": "rgba(25, 25, 112, 0.5)", "from": "19", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_19", "width": 3}, {"color": "rgba(255, 69, 0, 0.5)", "from": "26", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_18", "width": 3}, {"color": "rgba(25, 25, 112, 0.5)", "from": "26", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_19", "width": 3}, {"color": "rgba(255, 160, 122, 0.5)", "from": "26", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_17", "width": 3}, {"color": "rgba(32, 178, 170, 0.5)", "from": "rand_he_11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "39", "width": 3}, {"color": "rgba(32, 178, 170, 0.5)", "from": "rand_he_11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "46", "width": 3}, {"color": "rgba(32, 178, 170, 0.5)", "from": "rand_he_11", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "30", "width": 3}, {"color": "rgba(244, 164, 96, 0.5)", "from": "39", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_24", "width": 3}, {"color": "rgba(128, 0, 128, 0.5)", "from": "39", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_8", "width": 3}, {"color": "rgba(255, 127, 80, 0.5)", "from": "39", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_6", "width": 3}, {"color": "rgba(0, 206, 209, 0.5)", "from": "46", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_12", "width": 3}, {"color": "rgba(169, 169, 169, 0.5)", "from": "46", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_15", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "30", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_23", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "30", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_16", "width": 3}, {"color": "rgba(0, 0, 139, 0.5)", "from": "30", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_20", "width": 3}, {"color": "rgba(119, 136, 153, 0.5)", "from": "30", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_2", "width": 3}, {"color": "rgba(255, 127, 80, 0.5)", "from": "30", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_6", "width": 3}, {"color": "rgba(255, 69, 0, 0.5)", "from": "rand_he_18", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "7", "width": 3}, {"color": "rgba(255, 69, 0, 0.5)", "from": "rand_he_18", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "40", "width": 3}, {"color": "rgba(255, 69, 0, 0.5)", "from": "rand_he_18", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "16", "width": 3}, {"color": "rgba(0, 206, 209, 0.5)", "from": "7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_12", "width": 3}, {"color": "rgba(119, 136, 153, 0.5)", "from": "7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_2", "width": 3}, {"color": "rgba(0, 255, 0, 0.5)", "from": "7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_13", "width": 3}, {"color": "rgba(205, 133, 63, 0.5)", "from": "7", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_21", "width": 3}, {"color": "rgba(25, 25, 112, 0.5)", "from": "40", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_19", "width": 3}, {"color": "rgba(0, 206, 209, 0.5)", "from": "40", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_12", "width": 3}, {"color": "rgba(128, 0, 128, 0.5)", "from": "40", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_8", "width": 3}, {"color": "rgba(25, 25, 112, 0.5)", "from": "rand_he_19", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "24", "width": 3}, {"color": "rgba(0, 0, 139, 0.5)", "from": "24", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_20", "width": 3}, {"color": "rgba(199, 21, 133, 0.5)", "from": "24", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_14", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "rand_he_23", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "10", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "rand_he_23", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "42", "width": 3}, {"color": "rgba(0, 206, 209, 0.5)", "from": "42", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_12", "width": 3}, {"color": "rgba(0, 206, 209, 0.5)", "from": "rand_he_12", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "41", "width": 3}, {"color": "rgba(0, 0, 205, 0.5)", "from": "41", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_22", "width": 3}, {"color": "rgba(0, 128, 128, 0.5)", "from": "41", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_1", "width": 3}, {"color": "rgba(169, 169, 169, 0.5)", "from": "rand_he_15", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "15", "width": 3}, {"color": "rgba(0, 128, 128, 0.5)", "from": "15", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_1", "width": 3}, {"color": "rgba(0, 255, 0, 0.5)", "from": "15", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_13", "width": 3}, {"color": "rgba(218, 165, 32, 0.5)", "from": "15", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_9", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "rand_he_16", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "1", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "rand_he_16", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "36", "width": 3}, {"color": "rgba(105, 105, 105, 0.5)", "from": "rand_he_16", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "20", "width": 3}, {"color": "rgba(0, 128, 128, 0.5)", "from": "1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_1", "width": 3}, {"color": "rgba(119, 136, 153, 0.5)", "from": "1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_2", "width": 3}, {"color": "rgba(218, 165, 32, 0.5)", "from": "36", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_9", "width": 3}, {"color": "rgba(0, 0, 205, 0.5)", "from": "20", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_22", "width": 3}, {"color": "rgba(205, 133, 63, 0.5)", "from": "20", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_21", "width": 3}, {"color": "rgba(0, 0, 205, 0.5)", "from": "rand_he_22", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "50", "width": 3}, {"color": "rgba(0, 0, 205, 0.5)", "from": "rand_he_22", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "6", "width": 3}, {"color": "rgba(0, 0, 205, 0.5)", "from": "rand_he_22", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "12", "width": 3}, {"color": "rgba(128, 0, 128, 0.5)", "from": "6", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_8", "width": 3}, {"color": "rgba(0, 0, 139, 0.5)", "from": "12", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_20", "width": 3}, {"color": "rgba(0, 255, 0, 0.5)", "from": "12", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_13", "width": 3}, {"color": "rgba(0, 128, 128, 0.5)", "from": "rand_he_1", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "18", "width": 3}, {"color": "rgba(119, 136, 153, 0.5)", "from": "rand_he_2", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "37", "width": 3}, {"color": "rgba(128, 0, 128, 0.5)", "from": "rand_he_8", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "22", "width": 3}, {"color": "rgba(199, 21, 133, 0.5)", "from": "22", "label": "", "label_align": "center", "label_size": 20, "label_x_offset": 0, "label_y_offset": 0, "smooth": {"roundness": 1, "type": "curvedCCW"}, "title": "", "to": "rand_he_14", "width": 3}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"interaction": {"hover": true, "tooltipDelay": 100, "hideEdgesOnDrag": true, "hoverConnectedEdges": true}, "physics": {"enabled": true}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
